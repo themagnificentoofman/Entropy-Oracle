@@ -18,59 +18,50 @@ export class GeminiService {
     }
 
     const prompt = `
-      You are a mathematical cryptanalyst and expert in Pseudo-Random Number Generators (PRNGs) and sequence prediction.
-      Analyze the following sequence of numbers: [${sequence.join(', ')}].
+      You are an expert Cryptanalyst and Mathematician specializing in PRNG reverse-engineering.
       
-      Task:
-      1. Identify the likely algorithm, mathematical pattern, or recurrence relation.
-      2. Consider an extensive range of generators and patterns, including but not limited to:
+      INPUT SEQUENCE: [${sequence.join(', ')}]
       
-         **Linear Congruential & Multiplicative (LCG/MLCG):**
-         - Common parameters (ANSI C, glibc, Borland, Microsoft Visual C++, Apple CarbonLib/QuickDraw, Java.util.Random, NAG, Numerical Recipes).
-         - Knuth's MMIX, MINSTD (Lehmer), RANDU (IBM), ZX81.
-         - Combined LCGs (Wichmann-Hill).
+      ### PRIMARY OBJECTIVE
+      Identify the exact generator algorithm and RECOVER THE EXACT PARAMETERS (multipliers, moduli, seeds, taps, chaos rates) used.
+      
+      ### ANALYSIS INSTRUCTIONS
+      1. **Parameter Solving (CRITICAL):**
+         - **LCG (Linear Congruential):** Attempt to solve the system of linear equations $X_{n+1} = (a X_n + c) \\pmod m$. Determine 'a', 'c', and 'm'. Check if these match known standards (e.g., Numerical Recipes: a=1664525, c=1013904223; Borland: a=22695477; glibc: a=1103515245).
+         - **Chaotic Maps:** For floats, solve for the control parameter (e.g., Logistic Map $r = X_{n+1} / (X_n(1-X_n))$). Check for precision artifacts.
+         - **LFSR/Shift:** Analyze bitwise patterns. Check for common feedback polynomials.
          
-         **Shift Register & GF(2) Generators:**
-         - Xorshift variants (32, 64, 128, 128+, 1024*).
-         - Xoroshiro variants (128+, 128++, 256+, 256++).
-         - LFSR (Linear Feedback Shift Register) with various taps and Galois/Fibonacci configurations.
-         - WELL (Well Equidistributed Long-period Linear).
-         - Tausworthe generators (e.g., Taus88).
-         - Mersenne Twister (MT19937, MT19937-64, SFMT).
+      2. **Algorithm Classification:**
+         Consider the following extensive knowledge base:
          
-         **Modern Non-Cryptographic:**
-         - PCG Family (PCG-XSH-RR, PCG-XSH-RS, PCG-MCG).
-         - SplitMix64 (often used to seed others).
-         - Mulberry32, SFC32/64 (Small Fast Counting).
-         - Tyche, Tyche-i.
-         - JSF (Jenkins Small Fast).
-         - KISS, JKISS (Marsaglia).
+         **Linear & Modular:**
+         - LCGs (Standard, Truncated), MLCGs (Lehmer), Combined LCGs (Wichmann-Hill).
+         - Inverse Congruential, Hull-Dobell compliant params.
          
-         **Chaotic & Dynamical Systems:**
-         - Maps: Logistic, Tent, Sine, Circle, Gauss, Hénon, Ikeda, Kaplan-Yorke, Bernoulli.
-         - Attractors (sampled coords): Lorenz, Rössler, Chua.
+         **Bitwise & Shift Register:**
+         - Xorshift (32, 64, 128, 1024), Xoroshiro (128+, 256+), XORShift*.
+         - LFSR (Galois/Fibonacci), Tausworthe (Taus88), WELL.
+         - Mersenne Twister (MT19937), SFMT.
          
-         **Cryptographic & Number Theoretic:**
-         - ISAAC, RC4 (early keystream), Salsa20/ChaCha (reduced rounds).
-         - Blum Blum Shub (BBS).
-         - Inverse Congruential Generators.
-         - Digits of irrational constants (Pi, e, Phi, Sqrt(2)).
-         - Prime sequences, look-and-say, Recamán's sequence.
+         **Chaotic & Nonlinear:**
+         - Logistic Map ($rx(1-x)$), Tent Map, Sine Map, Bernoulli Map.
+         - Hénon Map, Ikeda Map, Lorenz/Rössler Attractors (sampled).
          
-         **Cellular Automata:**
-         - Wolfram Rules (Rule 30, Rule 90, Rule 110).
+         **Modern & Fast:**
+         - PCG Family (Permuted Congruential), SplitMix64.
+         - SFC32, Mulberry32, WyRand.
          
-         **Quasi-Random (Low Discrepancy):**
-         - Halton, Sobol, Van der Corput sequences.
+         **Historical/Other:**
+         - Middle Square, Lagged Fibonacci, Linear Feedback.
+         - Digits of Pi/e/Phi, Prime sequences.
 
-         **Simple Mathematical:**
-         - Arithmetic/Geometric progressions.
-         - Middle Square Method (von Neumann).
-         - Lagged Fibonacci (Add/Sub/Mult).
+      3. **Output Requirements:**
+         - Provide the top 3 candidates.
+         - **Parameters Field:** MUST contain the recovered mathematical constants (e.g., "a=1664525, c=1013904223, m=2^32"). Do not just say "Standard LCG".
+         - **Explanation:** Show the reasoning or mathematical check that confirmed the parameters.
 
-      3. List up to 3 potential algorithms that could have generated this sequence, ranked by likelihood.
-      4. For each candidate, provide a confidence score (0-100), estimated parameters (like multipliers 'a', increments 'c', moduli 'm', seeds, tap masks, or chaos parameters 'r'), and a detailed reasoning explaining the fit.
-      5. Predict the next 3 numbers in the sequence based on the #1 most likely candidate. If the pattern is exact, perform the calculation.
+      4. **Prediction:**
+         - Calculate the NEXT 3 numbers in the sequence using the recovered parameters of the #1 candidate.
     `;
 
     const schema: SchemaType = {
@@ -81,19 +72,19 @@ export class GeminiService {
           items: {
             type: Type.OBJECT,
             properties: {
-              algorithm: { type: Type.STRING, description: "Name of the detected algorithm" },
+              algorithm: { type: Type.STRING, description: "Specific name of the algorithm (e.g., 'LCG (Numerical Recipes)')" },
               confidence: { type: Type.INTEGER, description: "Confidence score (0-100)" },
-              parameters: { type: Type.STRING, description: "Estimated parameters (e.g. 'a=1664525' or 'r=3.99')" },
-              explanation: { type: Type.STRING, description: "Detailed reasoning for why this algorithm fits the data" }
+              parameters: { type: Type.STRING, description: "Exact recovered parameters (e.g., 'a=1664525, c=1013904223, m=2^32')" },
+              explanation: { type: Type.STRING, description: "Mathematical derivation or reasoning for the match" }
             },
-            required: ["algorithm", "confidence", "explanation"]
+            required: ["algorithm", "confidence", "parameters", "explanation"]
           },
-          description: "Top 3 potential algorithm matches"
+          description: "Top 3 potential algorithm matches with recovered parameters"
         },
         nextValues: { 
           type: Type.ARRAY, 
           items: { type: Type.NUMBER },
-          description: "The next 3 predicted numbers based on the top candidate"
+          description: "The next 3 predicted numbers"
         }
       },
       required: ["candidates", "nextValues"]
@@ -106,7 +97,7 @@ export class GeminiService {
         config: {
           responseMimeType: 'application/json',
           responseSchema: schema,
-          temperature: 0.2
+          temperature: 0.1 // Low temperature for analytical precision
         }
       });
 
