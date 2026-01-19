@@ -1,0 +1,5 @@
+{
+  "name": "Entropy Oracle",
+  "description": "A PRNG (Pseudo-Random Number Generator) analyzer and sequence predictor powered by Gemini. Generate weak random sequences and watch the AI reverse-engineer the underlying patterns.",
+  "requestFramePermissions": []
+}
